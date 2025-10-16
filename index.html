@@ -308,26 +308,15 @@ recog.onresult = (event) => {
     const comandoLimpio = limpiarComando(frase);
     if (comandoLimpio) {
       texto.innerText = '✅ Comando limpio: ' + comandoLimpio;
-
-      // 🧠 Si el comando es un número (frecuencia), también actualizar el slider e input
-     if (!isNaN(comandoLimpio)) {
-      const valor = parseFloat(comandoLimpio);
-      slider.value = valor;
-      inputFreq.value = valor.toFixed(2);
-      valorSlider.innerText = `🔸 ${valor.toFixed(2)} Hz`;
-      console.log("🎚️ Frecuencia actualizada visualmente desde voz:", valor);
+      if (client && client.connected) {
+      client.publish(topic, comandoLimpio);
+      console.log("📤 Enviado por MQTT:", comandoLimpio);
+      }else{
+      console.warn("⚠️ Cliente MQTT no conectado.");
+      } 
+      } else{
+        texto.innerText = '❓ No se reconoció un comando válido.'; 
       }
-
-	  if (client && client.connected) {
-	    client.publish(topic, comandoLimpio);
-	    console.log("📤 Enviado por MQTT:", comandoLimpio);
-	    } else {
-	    console.warn("⚠️ Cliente MQTT no conectado.");
-	    }
-     }
-    }else {
-      texto.innerText = '❓ No se reconoció un comando válido.';
-    }
 
     modoComando = false;
     // esperar un segundo y reiniciar reconocimiento continuo

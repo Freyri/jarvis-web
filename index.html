@@ -2,29 +2,274 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>MQTT Test HTML → MATLAB</title>
+<title>🎙️ Jarvis Asistente de Voz</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #0f0;
+  text-align: center;
+  padding-top: 60px;
+}
+h1 { font-size: 2em; margin: 0; }
+#texto { font-size: 1.1em; margin-top: 18px; white-space: pre-line; }
+.status { color: #0ff; font-style: italic; margin-top: 8px; }
+button {
+  background: #0f0; color: #111; font-size: 1.05em;
+  padding: 10px 22px; border: none; border-radius: 10px;
+  cursor: pointer; margin-top: 18px; transition: 0.15s;
+}
+button:hover { background: #5f5; }
+#nota { font-size: 0.9em; color: #9f9; margin-top: 6px; }
+</style>
 </head>
-<body style="background:#111;color:#0f0;text-align:center;padding-top:50px;font-family:sans-serif">
-<h2>🌐 Enviar mensaje MQTT</h2>
-<input id="msg" value="Hola MATLAB!" style="padding:5px;width:200px">
-<button id="btn" style="padding:5px 10px;margin-left:10px;">Enviar</button>
-<p id="estado">⏳ Conectando a MQTT...</p>
+<body>
+<h1>🎙️ Jarvis Asistente</h1>
+<p id="texto">🕐 Esperando “hola jarvich”...</p>
+<p class="status" id="estado">Micrófono activo 🎧</p>
+<button id="activarSonido">🔊 Activar sonido</button>
+<p id="nota">Tip: Haz clic en "Activar sonido" una vez si el audio no suena automáticamente.</p>
 
 <script>
-const topic = "test/matlab/demoYefri";
+/* ===========================
+   Jarvis voz → limpia comando
+   =========================== */
+
+const texto = document.getElementById('texto');
+const estado = document.getElementById('estado');
+const botonSonido = document.getElementById('activarSonido');
+
+let modoComando = false;
+let temporizador = null;
+let audioDesbloqueado = false;
+// --- Conexión MQTT ---
+const topic = "test/matlab/demoYefri";  // puedes cambiarlo si quieres
 const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
 
 client.on("connect", () => {
-  document.getElementById("estado").textContent = "✅ Conectado al broker HiveMQ";
-  console.log("Conectado MQTT");
+  console.log("✅ Conectado a broker MQTT HiveMQ");
+  estado.innerText = "🌐 Conectado a MQTT (HiveMQ)";
 });
 
-document.getElementById("btn").onclick = () => {
-  const texto = document.getElementById("msg").value;
-  client.publish(topic, texto);
-  console.log("📤 Enviado:", texto);
+client.on("error", (err) => {
+  console.error("⚠️ Error MQTT:", err);
+  estado.innerText = "❌ Error al conectar MQTT";
+});
+
+
+// --- Wake words (variantes completas) ---
+const wakeWords = [
+  'hola jarvis','ola jarvis','hola yarvis','ola yarvis',
+  'hola jervis','ola jervis','hola yervis','ola yervis',
+  'hola jarvich','ola jarvich','hola yarvich','ola yarvich',
+  'hola llavich','ola llavich','hola llarvich','ola llarvich',
+  'hola jharvis','ola jharvis','hola jharvich','ola jharvich',
+  'hola yharvis','ola yharvis','hola yharvich','ola yharvich',
+  'holarvich','holarvis','hola yarbis','ola yarbis',
+  'hola yaris','ola yaris','hola yarbit','hola yarbis',
+  'hola yarlis','ola yarlis','hola yarmis','ola yarmis',
+  'hola jerry','ola jerry','hola jerry','ola jerry',
+  'hola yerlich','ola yerlich','hola yerlich','ola yerlich',
+  'hola yarbich','ola yarbich','hola llarbich','ola yarbeach',
+  'o la jarvich','o la yarvich','ol ayarvich','olayarvich'
+];
+
+// --- Variantes completas de ENCENDIDO/APAGADO (para mayor robustez en HTML) ---
+const cmdOnList = [
+  "prende motor","prender motor","enciende motor","encender motor",
+  "activa motor","activar motor","motor on","enciende el motor",
+  "prende el motor","prender el motor","activa el motor","activar el motor",
+  "arranca motor","arrancar motor","arranca el motor","arrancar el motor",
+  "enciendelo","enciéndelo","prendelo","préndelo",
+  "enciende máquina","prende máquina","arranca máquina",
+  "motor adelante","inicia motor","iniciar motor","inicia el motor"
+];
+
+const cmdOffList = [
+  "apaga motor","apagar motor","desactiva motor","desactivar motor",
+  "detiene motor","detener motor","para motor","motor off",
+  "apaga el motor","apagar el motor","desactiva el motor","desactivar el motor",
+  "detiene el motor","detener el motor","para el motor",
+  "detén motor","detén el motor","deten el motor",
+  "apagalo","apágalo","desactivalo","desactívalo",
+  "para máquina","detiene máquina","apaga máquina","stop motor",
+  "frena motor","frenar motor","frena la máquina","detén la máquina"
+];
+
+// --- Util: reproducir bip ---
+function reproducirBip(frecuencia, duracion) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.value = frecuencia;
+  o.connect(g);
+  g.connect(ctx.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duracion);
+  setTimeout(() => o.stop(), duracion * 1000);
+}
+
+// --- Botón para desbloquear audio (interacción requerida por navegadores) ---
+botonSonido.onclick = () => {
+  reproducirBip(600, 0.18);
+  audioDesbloqueado = true;
+  botonSonido.style.display = 'none';
+  texto.innerText = '✅ Sonido activado. Esperando “hola jarvich”…';
 };
+
+// --- SpeechRecognition setup ---
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognition) {
+  texto.innerText = '⚠️ Tu navegador no soporta SpeechRecognition.';
+  throw new Error('SpeechRecognition no soportado');
+}
+const recog = new SpeechRecognition();
+recog.lang = 'es-ES';
+recog.continuous = true;
+recog.interimResults = false;
+
+// --- Normaliza y chequea si una frase contiene alguna variante ---
+function containsAnyVariant(frase, variants) {
+  for (let v of variants) {
+    if (frase.includes(v)) return true;
+  }
+  return false;
+}
+
+// --- Función que toma la frase y devuelve el comando limpio o null ---
+function limpiarComando(fraseOriginal) {
+  // normalizar acentos y mayúsc/minúsc
+  let s = fraseOriginal.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  // 1) Si coincide con cualquiera de las variantes de ON (buscamos coincidencia parcial con array)
+  for (let v of cmdOnList) {
+    if (s.includes(v)) return "prende motor";
+  }
+
+  // 2) OFF
+  for (let v of cmdOffList) {
+    if (s.includes(v)) return "apaga motor";
+  }
+
+  // 3) FRECUENCIA: detecta número (ej: "frecuencia 45.5", "poner frecuencia 22,45", "45.5 hz")
+  // buscamos la palabra "frecuencia" o "hz"/"hertz" para confirmar intención
+  if (s.includes("frecuencia") || s.includes("hz") || s.includes("hertz") || s.includes("herz") || s.includes("frecuncia") || s.includes("frecuensia") || s.includes("frecuecia") ||  s.includes("frecuancia") || s.includes("setear") || s.includes("setea") ||  s.includes("establecer") || s.includes("establece")) {
+    // extraer primer número decimal que encuentre
+    const m = s.match(/(\d+([.,]\d+)?)/);
+    if (m) {
+      const num = m[1].replace(",", ".");
+      // límite de seguridad: 0..60
+      const val = parseFloat(num);
+      if (!isNaN(val)) {
+        const valClamped = Math.max(0, Math.min(60, val));
+        return valClamped.toFixed((num.indexOf('.')>-1||num.indexOf(',')>-1)?(num.split(/[.,]/)[1].length):0);
+      }
+    }
+  }
+
+  // no reconocido
+  return null;
+}
+
+// --- Manejo de resultados de reconocimiento ---
+recog.onresult = (event) => {
+  const frase = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+  console.log('🗣️ Dijo:', frase);
+  texto.innerText = '🗣️ ' + frase;
+
+  if (!modoComando) {
+    // comprobar wake words
+    if (containsAnyVariant(frase, wakeWords)) {
+      modoComando = true;
+      texto.innerText = '🤖 Sí, mi señor... preparando escucha.';
+      recog.stop();
+      if (audioDesbloqueado) {
+        reproducirBip(500, 0.25);
+        const audio = new Audio('respuesta_jarvis.wav?v=' + new Date().getTime());
+        audio.play().catch(e => console.warn('⚠️ Error audio:', e));
+        audio.onended = () => {
+          reproducirBip(500, 0.25);
+          try { recog.start(); } catch(e) {}
+          texto.innerText = '🎧 Te escucho durante 5 segundos...';
+          // 5 segundos para el comando
+          temporizador = setTimeout(() => {
+            modoComando = false;
+            try { recog.stop(); } catch(e) {}
+            texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvich”…';
+          }, 6000);
+        };
+      } else {
+        // sin audio desbloqueado: arrancar escucha de inmediato
+        try { recog.start(); } catch(e) {}
+        texto.innerText = '🎧 Te escucho durante 5 segundos...';
+        temporizador = setTimeout(() => {
+          modoComando = false;
+          try { recog.stop(); } catch(e) {}
+          texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvich”…';
+        }, 5000);
+      }
+    }
+  } else {
+    // ya en modo comando → procesar y enviar solo el comando limpio
+    clearTimeout(temporizador);
+    recog.stop();
+
+    const comandoLimpio = limpiarComando(frase);
+    if (comandoLimpio) {
+      texto.innerText = '✅ Comando limpio: ' + comandoLimpio;
+	if (client && client.connected) {
+  	client.publish(topic, comandoLimpio);
+  	console.log("📤 Enviado por MQTT:", comandoLimpio);
+	} else {
+  	console.warn("⚠️ Cliente MQTT no conectado.");
+	}
+
+    } else {
+      texto.innerText = '❓ No se reconoció un comando válido.';
+    }
+
+    modoComando = false;
+    // esperar un segundo y reiniciar reconocimiento continuo
+    setTimeout(() => {
+      try { recog.start(); } catch(e) {}
+      texto.innerText = '🕐 Esperando “hola jarvich”…';
+    }, 800);
+  }
+};
+
+// --- Reinicio si se corta ---
+recog.onend = () => {
+  if (!modoComando) {
+    try { recog.start(); } catch(e) {}
+    estado.innerText = '🎧 Escuchando nuevamente...';
+  }
+};
+
+recog.onerror = (e) => {
+  console.error('🎙️ Error en reconocimiento:', e);
+};
+
+// iniciar
+try {
+  recog.start();
+} catch(e){
+  console.warn('⚠️ No se pudo iniciar SpeechRecognition:', e);
+  texto.innerText = '⚠️ Error con SpeechRecognition.';
+}
+</script>
+<script>
+document.addEventListener("click", async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch (e) {
+    console.warn("No se pudo activar pantalla completa:", e);
+  }
+});
 </script>
 </body>
 </html>
+

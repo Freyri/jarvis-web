@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>MQTT Test HTML → MATLAB</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body style="background:#111;color:#0f0;text-align:center;padding-top:50px;font-family:sans-serif">
+<h2>🌐 Enviar mensaje MQTT</h2>
+<input id="msg" value="Hola MATLAB!" style="padding:5px;width:200px">
+<button id="btn" style="padding:5px 10px;margin-left:10px;">Enviar</button>
+<p id="estado">⏳ Conectando a MQTT...</p>
+
+<script>
+const topic = "test/matlab/demoYefri";
+const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+client.on("connect", () => {
+  document.getElementById("estado").textContent = "✅ Conectado al broker HiveMQ";
+  console.log("Conectado MQTT");
+});
+
+document.getElementById("btn").onclick = () => {
+  const texto = document.getElementById("msg").value;
+  client.publish(topic, texto);
+  console.log("📤 Enviado:", texto);
+};
+</script>
+</body>
+</html>

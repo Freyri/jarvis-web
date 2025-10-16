@@ -41,21 +41,32 @@
   align-items: center;
   gap: 10px;
 }
+
 #panelFrecuencia input[type="number"] {
   background: #222;
   color: #0f0;
   font-size: 1.1em;
+  text-align: center;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 0;
+  width: 120px;
+  height: 45px;
 }
+
 #panelFrecuencia button {
   background: #0f0;
   color: #111;
-  font-size: 1.05em;
-  padding: 8px 20px;
+  font-size: 1.1em;
+  padding: 10px 0;
+  width: 120px;
+  height: 45px;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   transition: 0.15s;
 }
+
 #panelFrecuencia button:hover {
   background: #5f5;
 }
@@ -377,17 +388,27 @@ const valorSlider = document.getElementById('valorSlider');
 const inputFreq = document.getElementById('inputFreq');
 const btnSetFreq = document.getElementById('btnSetFreq');
 
+// variable para controlar el retardo
+let enviarTimeout = null;
+
 // --- Cuando se mueve el slider ---
 slider.oninput = () => {
   const valor = parseFloat(slider.value).toFixed(2);
   valorSlider.innerText = `🔸 ${valor} Hz`;
+  inputFreq.value = valor; // 🔄 también actualiza el input numérico
 
-  if (client && client.connected) {
-    client.publish(topic, valor);
-    console.log("📤 Enviado MQTT (slider):", valor);
-  } else {
-    console.warn("⚠️ Cliente MQTT no conectado.");
-  }
+  // 🔁 cancelar el temporizador anterior (si el usuario sigue moviendo)
+  clearTimeout(enviarTimeout);
+
+  // 🕒 programar un nuevo envío con 300 ms de retardo
+  enviarTimeout = setTimeout(() => {
+    if (client && client.connected) {
+      client.publish(topic, valor);
+      console.log("📤 Enviado MQTT (slider con retardo):", valor);
+    } else {
+      console.warn("⚠️ Cliente MQTT no conectado.");
+    }
+  }, 300); // <--- ajusta este tiempo si quieres más/menos sensibilidad
 };
 
 // --- Cuando se presiona el botón SET ---

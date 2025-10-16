@@ -5,6 +5,26 @@
 <title>🎙️ Jarvis Asistente de Voz</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
+#panelManual {
+  margin-top: 40px;
+}
+#panelManual h2 {
+  color: #0ff;
+  margin-bottom: 10px;
+}
+#panelManual button {
+  background: #0f0;
+  color: #111;
+  font-size: 1.1em;
+  padding: 10px 25px;
+  border-radius: 10px;
+  margin: 8px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+#panelManual button:hover {
+  background: #5f5;
+}
 body {
   font-family: Arial, sans-serif;
   background: #111;
@@ -30,7 +50,12 @@ button:hover { background: #5f5; }
 <p class="status" id="estado">Micrófono activo 🎧</p>
 <button id="activarSonido">🔊 Activar sonido</button>
 <p id="nota">Tip: Haz clic en "Activar sonido" una vez si el audio no suena automáticamente.</p>
-
+<!-- 🔘 Panel de control manual -->
+<div id="panelManual" style="margin-top: 40px;">
+  <h2>⚙️ Control Manual</h2>
+  <button id="btnStart">🟢 START</button>
+  <button id="btnStop">🔴 STOP</button>
+</div>
 <script>
 /* ===========================
    Jarvis voz → limpia comando
@@ -269,6 +294,30 @@ document.addEventListener("click", async () => {
     console.warn("No se pudo activar pantalla completa:", e);
   }
 });
+// =============================
+// 🔘 Botones manuales START / STOP
+// =============================
+document.getElementById('btnStart').onclick = () => {
+  if (client && client.connected) {
+    client.publish(topic, "prende motor");
+    console.log("📤 Enviado MQTT: prende motor (manual)");
+    texto.innerText = "✅ Motor encendido manualmente.";
+    reproducirBip(700, 0.2);
+  } else {
+    console.warn("⚠️ Cliente MQTT no conectado.");
+  }
+};
+
+document.getElementById('btnStop').onclick = () => {
+  if (client && client.connected) {
+    client.publish(topic, "apaga motor");
+    console.log("📤 Enviado MQTT: apaga motor (manual)");
+    texto.innerText = "🛑 Motor apagado manualmente.";
+    reproducirBip(300, 0.2);
+  } else {
+    console.warn("⚠️ Cliente MQTT no conectado.");
+  }
+};
 </script>
 </body>
 </html>

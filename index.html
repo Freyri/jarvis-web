@@ -38,7 +38,7 @@
 #panelFrecuencia .manual-section {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: baseline; /* 🔧 cambia center → baseline para alineación visual */
   gap: 10px;
 }
 
@@ -49,10 +49,12 @@
   text-align: center;
   border: none;
   border-radius: 10px;
-  padding: 10px 0;      /* 🔧 menos padding */
+  padding: 8px 0;           /* 🔧 ajusta padding para nivelar verticalmente */
   width: 120px;
-  height: 45px;        /* 🔧 igual altura que el botón */
+  height: 45px;
   box-sizing: border-box;
+  position: relative;
+  top: 2px;                 /* 🔧 leve ajuste de posición vertical */
 }
 
 #panelFrecuencia button {
@@ -433,5 +435,4 @@ btnSetFreq.onclick = () => {
 </script>
 </body>
 </html>
-
 

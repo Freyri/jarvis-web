@@ -335,6 +335,11 @@ const cmdOffList = [
   "detén motor","detén el motor","deten el motor",
   "apagalo","apágalo","desactivalo","desactívalo",
   "para máquina","detiene máquina","apaga máquina","stop motor",
+  "apaga variador","apagar variador","desactiva variador","desactivar variador",
+  "detiene variador","detener variador","para variador","variador off",
+  "apaga el variador","apagar el variador","desactiva el variador","desactivar el variador",
+  "detiene el variador","detener el variador","para el variador",
+  "detén variador","detén el variador","deten el variador",
   "frena motor","frenar motor","frena la máquina","detén la máquina"
 ];
 
@@ -395,8 +400,15 @@ function limpiarComando(fraseOriginal) {
   }
 
   // 3) FRECUENCIA: detecta número (ej: "frecuencia 45.5", "poner frecuencia 22,45", "45.5 hz")
-  // buscamos la palabra "frecuencia" o "hz"/"hertz" para confirmar intención
-  if (s.includes("frecuencia") || s.includes("hz") || s.includes("hertz") || s.includes("herz") || s.includes("frecuncia") || s.includes("frecuensia") || s.includes("frecuecia") ||  s.includes("frecuancia") || s.includes("setear") || s.includes("setea") ||  s.includes("establecer") || s.includes("establece")) {
+  const tieneNumero = /\d+([.,]\d+)?/.test(s); // detecta si hay un número en la frase
+  if (
+    s.includes("frecuencia") || s.includes("hz") || s.includes("hertz") ||
+    s.includes("herz") || s.includes("frecuncia") || s.includes("frecuensia") ||
+    s.includes("frecuecia") || s.includes("frecuancia") ||
+    s.includes("setear") || s.includes("setea") ||
+    s.includes("establecer") || s.includes("establece") ||
+    tieneNumero // 👈 ahora basta con que haya número para que entre
+  ) {
     // extraer primer número decimal que encuentre
     const m = s.match(/(\d+([.,]\d+)?)/);
     if (m) {
@@ -405,7 +417,11 @@ function limpiarComando(fraseOriginal) {
       const val = parseFloat(num);
       if (!isNaN(val)) {
         const valClamped = Math.max(0, Math.min(60, val));
-        return valClamped.toFixed((num.indexOf('.')>-1||num.indexOf(',')>-1)?(num.split(/[.,]/)[1].length):0);
+        return valClamped.toFixed(
+          (num.indexOf('.') > -1 || num.indexOf(',') > -1)
+            ? num.split(/[.,]/)[1].length
+            : 0
+        );
       }
     }
   }
@@ -449,7 +465,7 @@ recog.onresult = (event) => {
           modoComando = false;
           try { recog.stop(); } catch(e) {}
           texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvich”…';
-        }, 5000);
+        }, 6000);
       }
     }
   } else {
@@ -481,7 +497,7 @@ if (comandoLimpio) {
     console.warn("⚠️ Cliente MQTT no conectado.");
   }
 } else {
-  texto.innerText = '❓ No se reconoció un comando válido.';
+    texto.innerText = `❓ No se reconoció un comando válido → "${frase}"`;
 }
 
 

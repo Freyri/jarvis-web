@@ -140,8 +140,6 @@ button:hover { background: #5f5; }
 <p id="texto">🕐 Esperando “hola jarvich”...</p>
 <p class="status" id="estado">Micrófono activo 🎧</p>
 <button id="activarSonido">🔊 Activar sonido</button>
-<button id="btnFull">🖥️ Pantalla completa</button>
-
 <p id="nota">Tip: Haz clic en "Activar sonido" una vez si el audio no suena automáticamente.</p>
 <!-- 🔘 Panel de control manual -->
 <div id="panelManual" style="margin-top: 40px;">
@@ -378,42 +376,6 @@ recog.lang = 'es-ES';
 recog.continuous = true;
 recog.interimResults = false;
 
-/* 🔘 Control manual del micrófono */
-let microActivo = false;
-const btnMicro = document.getElementById("btnMicro");
-
-btnMicro.addEventListener("click", () => {
-  if (!microActivo) {
-    try {
-      recog.start();
-      microActivo = true;
-      btnMicro.textContent = "🔴 Micrófono activo";
-      btnMicro.style.background = "#b91c1c";
-      console.log("🎙️ Micrófono activado manualmente");
-    } catch (e) {
-      console.warn("⚠️ Error al iniciar micrófono:", e);
-    }
-  } else {
-    recog.stop();
-    microActivo = false;
-    btnMicro.textContent = "🎤 Activar micrófono";
-    btnMicro.style.background = "#1f2937";
-    console.log("🎙️ Micrófono desactivado manualmente");
-  }
-});
-
-// Reinicio automático si se corta
-recog.onend = () => {
-  if (microActivo) {
-    console.log("🎙️ Micrófono se cerró solo, reiniciando...");
-    setTimeout(() => {
-      try { recog.start(); } catch(e) { console.warn("No se pudo reiniciar micrófono:", e); }
-    }, 800);
-  }
-};
-
-
-
 // --- Normaliza y chequea si una frase contiene alguna variante ---
 function containsAnyVariant(frase, variants) {
   for (let v of variants) {
@@ -437,7 +399,7 @@ function limpiarComando(fraseOriginal) {
     if (s.includes(v)) return "apaga motor";
   }
 
-  // 3) FRECUENCIA: detecta número (ej: "frecuencia 45.5", "poner frecuencia 22,45", "45.5 hz")
+// 3) FRECUENCIA: detecta número (ej: "frecuencia 45.5", "poner frecuencia 22,45", "45.5 hz")
   const tieneNumero = /\d+([.,]\d+)?/.test(s); // detecta si hay un número en la frase
   if (
     s.includes("frecuencia") || s.includes("hz") || s.includes("hertz") ||
@@ -467,7 +429,6 @@ function limpiarComando(fraseOriginal) {
   // no reconocido
   return null;
 }
-
 // --- Manejo de resultados de reconocimiento ---
 recog.onresult = (event) => {
   const frase = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
@@ -503,7 +464,7 @@ recog.onresult = (event) => {
           modoComando = false;
           try { recog.stop(); } catch(e) {}
           texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvich”…';
-        }, 6000);
+        }, 5000);
       }
     }
   } else {
@@ -535,7 +496,7 @@ if (comandoLimpio) {
     console.warn("⚠️ Cliente MQTT no conectado.");
   }
 } else {
-    texto.innerText = `❓ No se reconoció un comando válido → "${frase}"`;
+  texto.innerText = '❓ No se reconoció un comando válido.';
 }
 
 
@@ -569,22 +530,18 @@ try {
 }
 </script>
 <script>
-document.getElementById("btnFull").addEventListener("click", async () => {
+document.addEventListener("click", async () => {
   try {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen();
-    } else {
-      await document.exitFullscreen();
     }
   } catch (e) {
-    console.warn("No se pudo cambiar pantalla completa:", e);
+    console.warn("No se pudo activar pantalla completa:", e);
   }
 });
-
 // =============================
 // 🔘 Botones manuales START / STOP
 // =============================
-
 document.getElementById('btnStart').onclick = () => {
   if (client && client.connected) {
     client.publish(topic, "prende motor");

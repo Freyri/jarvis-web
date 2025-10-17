@@ -154,6 +154,8 @@ button:hover { background: #5f5; }
 </button>
 <p class="status" id="estado">Micrófono activo 🎧</p>
 <button id="activarSonido">🔊 Activar sonido</button>
+<button id="btnFull">🖥️ Pantalla completa</button>
+
 <p id="nota">Tip: Haz clic en "Activar sonido" una vez si el audio no suena automáticamente.</p>
 <!-- 🔘 Panel de control manual -->
 <div id="panelManual" style="margin-top: 40px;">
@@ -588,18 +590,22 @@ try {
 }
 </script>
 <script>
-document.addEventListener("click", async () => {
+document.getElementById("btnFull").addEventListener("click", async () => {
   try {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
     }
   } catch (e) {
-    console.warn("No se pudo activar pantalla completa:", e);
+    console.warn("No se pudo cambiar pantalla completa:", e);
   }
 });
+
 // =============================
 // 🔘 Botones manuales START / STOP
 // =============================
+
 document.getElementById('btnStart').onclick = () => {
   if (client && client.connected) {
     client.publish(topic, "prende motor");

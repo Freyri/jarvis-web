@@ -3,8 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <title>🎙️ Jarvis Asistente de Voz</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
+#graficas {
+  background: #111827;
+  color: #e5e7eb;
+  padding: 40px 40px;
+  border-radius: 16px;
+  max-width: 900px;
+  margin: 60px auto;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#graficas h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #60a5fa;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 1.6em;
+  letter-spacing: 0.5px;
+}
+
+canvas {
+  margin: 25px 0;
+  background: #1f2937;
+  border-radius: 14px;
+  padding: 10px;
+  width: 100%;
+  max-width: 800px;
+  height: 320px !important; /* 💪 más alto y visual */
+  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* efecto hover opcional, sutil */
+canvas:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 25px rgba(96, 165, 250, 0.3);
+}
+
+
 #panelManual {
   margin-top: 40px;
 }
@@ -120,6 +162,18 @@ button:hover { background: #5f5; }
     <button id="btnSetFreq">⚡ SET</button>
   </div>
 </div>
+<div id="panelLecturas" style="margin-top:40px;">
+  <h2>📈 Lecturas del Variador</h2>
+  <pre id="lecturas">Esperando datos...</pre>
+</div>
+<div id="graficas" style="margin-top: 40px;">
+  <h2>📊 Monitoreo en Tiempo Real</h2>
+  <canvas id="graf_f" height="150"></canvas>
+  <canvas id="graf_vout" height="150"></canvas>
+  <canvas id="graf_vin" height="150"></canvas>
+  <canvas id="graf_rpm" height="150"></canvas>
+</div>
+
 <script>
 /* ===========================
    Jarvis voz → limpia comando
@@ -140,12 +194,99 @@ client.on("connect", () => {
   console.log("✅ Conectado a broker MQTT HiveMQ");
   estado.innerText = "🌐 Conectado a MQTT (HiveMQ)";
 });
+client.on("reconnect", () => {
+  console.log("♻️ Reconectando a MQTT...");
+  estado.innerText = "♻️ Reconectando a MQTT...";
+});
+client.on("close", () => {
+  console.log("🔌 Conexión MQTT cerrada");
+  estado.innerText = "🔌 Desconectado de MQTT";
+});
+client.subscribe("test/matlab/demoYefri/data");
+
+client.on("message", (topic, message) => {
+  if (topic === "test/matlab/demoYefri/data") {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log("📊 Datos recibidos:", data);
+      actualizarGraficas(data);
+    } catch (err) {
+      console.warn("⚠️ Error parseando JSON:", err.message);
+    }
+  }
+});
 
 client.on("error", (err) => {
   console.error("⚠️ Error MQTT:", err);
   estado.innerText = "❌ Error al conectar MQTT";
 });
+// === CONFIGURACIÓN DE GRÁFICAS ===
+const tiempoMax = 20; // segundos de historial visible
+const charts = {};
 
+function crearGrafica(id, label, color) {
+  const ctx = document.getElementById(id).getContext("2d");
+  return new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [{
+        label: label,
+        borderColor: color,
+        backgroundColor: color + "33",
+        data: [],
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: {
+          title: { display: true, text: "Tiempo" }
+        },
+        y: {
+          title: { display: true, text: label },
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } }
+      }
+    }
+  });
+}
+
+// Crear las gráficas
+charts.f = crearGrafica("graf_f", "Frecuencia (Hz)", "#34d399");
+charts.vout = crearGrafica("graf_vout", "Voltaje Salida (V)", "#60a5fa");
+charts.vin = crearGrafica("graf_vin", "Voltaje Entrada (V)", "#fbbf24");
+charts.rpm = crearGrafica("graf_rpm", "RPM", "#f87171");
+
+// === FUNCIÓN PARA ACTUALIZAR DATOS ===
+function actualizarGraficas(data) {
+  const tiempo = data.timestamp || new Date().toLocaleTimeString();
+
+  Object.entries({
+    f: data.f,
+    vout: data.v_out,
+    vin: data.v_in,
+    rpm: data.rpm
+  }).forEach(([key, val]) => {
+    const chart = charts[key];
+    if (!chart) return;
+
+    chart.data.labels.push(tiempo);
+    chart.data.datasets[0].data.push(val);
+
+    if (chart.data.labels.length > tiempoMax) {
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+
+    chart.update();
+  });
+}
 
 // --- Wake words (variantes completas) ---
 const wakeWords = [
@@ -446,6 +587,26 @@ btnSetFreq.onclick = () => {
     console.warn("⚠️ Cliente MQTT no conectado.");
   }
 };
+// === Suscripción para recibir datos del variador (desde MATLAB) ===
+client.subscribe("test/matlab/demoYefri/data");
+
+client.on("message", (topic, message) => {
+  if (topic === "test/matlab/demoYefri/data") {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log("📊 Datos desde MATLAB:", data);
+      // Muestra en el HTML
+      document.getElementById("lecturas").innerText =
+        `Frecuencia: ${data.f} Hz\n` +
+        `V_OUT: ${data.v_out} V\n` +
+        `V_IN: ${data.v_in} V\n` +
+        `RPM: ${data.rpm}\n` +
+        `⏱️ ${data.timestamp}`;
+    } catch (e) {
+      console.error("⚠️ Error leyendo datos MQTT:", e.message);
+    }
+  }
+});
 </script>
 </body>
 </html>

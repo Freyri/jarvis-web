@@ -140,6 +140,20 @@ button:hover { background: #5f5; }
 <p id="texto">🕐 Esperando “hola jarvich”...</p>
 <p class="status" id="estado">Micrófono activo 🎧</p>
 <button id="activarSonido">🔊 Activar sonido</button>
+<button id="btnMicro" style="
+  background:#1f2937;
+  color:white;
+  border:none;
+  border-radius:10px;
+  padding:10px 16px;
+  font-size:1em;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:6px;
+">
+  🎤 Activar micrófono
+</button>
 <p id="nota">Tip: Haz clic en "Activar sonido" una vez si el audio no suena automáticamente.</p>
 <!-- 🔘 Panel de control manual -->
 <div id="panelManual" style="margin-top: 40px;">
@@ -375,6 +389,49 @@ const recog = new SpeechRecognition();
 recog.lang = 'es-ES';
 recog.continuous = true;
 recog.interimResults = false;
+const recog = new SpeechRecognition();
+recog.lang = 'es-ES';
+recog.continuous = true;
+recog.interimResults = false;
+
+/* 🔘 Control manual del micrófono */
+let microActivo = false;
+const btnMicro = document.getElementById("btnMicro");
+
+btnMicro.addEventListener("click", () => {
+  if (!microActivo) {
+    try {
+      recog.start();
+      microActivo = true;
+      btnMicro.textContent = "🔴 Micrófono activo";
+      btnMicro.style.background = "#b91c1c";
+      console.log("🎙️ Micrófono activado manualmente");
+    } catch (e) {
+      console.warn("⚠️ Error al iniciar micrófono:", e);
+    }
+  } else {
+    recog.stop();
+    microActivo = false;
+    btnMicro.textContent = "🎤 Activar micrófono";
+    btnMicro.style.background = "#1f2937";
+    console.log("🎙️ Micrófono desactivado manualmente");
+  }
+});
+
+// Reinicio automático si se corta
+recog.onend = () => {
+  if (microActivo) {
+    console.log("🎙️ Micrófono se cerró solo, reiniciando...");
+    setTimeout(() => {
+      try { recog.start(); } catch(e) { console.warn("No se pudo reiniciar micrófono:", e); }
+    }, 800);
+  }
+};
+
+
+
+
+
 
 // --- Normaliza y chequea si una frase contiene alguna variante ---
 function containsAnyVariant(frase, variants) {
@@ -637,5 +694,4 @@ client.on("message", (topic, message) => {
 </script>
 </body>
 </html>
-
 

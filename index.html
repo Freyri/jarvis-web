@@ -377,10 +377,6 @@ const recog = new SpeechRecognition();
 recog.lang = 'es-ES';
 recog.continuous = true;
 recog.interimResults = false;
-const recog = new SpeechRecognition();
-recog.lang = 'es-ES';
-recog.continuous = true;
-recog.interimResults = false;
 
 /* 🔘 Control manual del micrófono */
 let microActivo = false;
@@ -415,9 +411,6 @@ recog.onend = () => {
     }, 800);
   }
 };
-
-
-
 
 
 

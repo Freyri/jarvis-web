@@ -214,8 +214,8 @@ button:hover { background: #5f5; }
   <h2>📊 Monitoreo en Tiempo Real</h2>
   <canvas id="graf_f" height="150"></canvas>
   <canvas id="graf_vout" height="150"></canvas>
-  <canvas id="graf_vin" height="150"></canvas>
   <canvas id="graf_rpm" height="150"></canvas>
+  <canvas id="graf_vin" height="150"></canvas>  
 </div>
 
 <script>
@@ -304,8 +304,8 @@ function crearGrafica(id, label, color) {
 // Crear las gráficas
 charts.f = crearGrafica("graf_f", "Frecuencia (Hz)", "#34d399");
 charts.vout = crearGrafica("graf_vout", "Voltaje Salida (V)", "#60a5fa");
-charts.vin = crearGrafica("graf_vin", "Voltaje Entrada (V)", "#fbbf24");
 charts.rpm = crearGrafica("graf_rpm", "RPM", "#f87171");
+charts.vin = crearGrafica("graf_vin", "Voltaje Entrada (V)", "#fbbf24");
 
 // === FUNCIÓN PARA ACTUALIZAR DATOS ===
 function actualizarGraficas(data) {
@@ -672,8 +672,8 @@ client.on("message", (topic, message) => {
       document.getElementById("lecturas").innerText =
         `Frecuencia: ${data.f} Hz\n` +
         `V_OUT: ${data.v_out} V\n` +
-        `V_IN: ${data.v_in} V\n` +
         `RPM: ${data.rpm}\n` +
+        `V_IN: ${data.v_in} V\n` +      
         `⏱️ ${data.timestamp}`;
     } catch (e) {
       console.error("⚠️ Error leyendo datos MQTT:", e.message);
@@ -702,6 +702,12 @@ fullscreenBtn.addEventListener("click", async () => {
     fullscreenBtn.title = "Pantalla completa";
   }
 });
+// 🔄 Ajustar automáticamente las gráficas al cambiar el tamaño o pantalla completa
+window.addEventListener("resize", () => {
+  Object.values(charts).forEach(chart => {
+    chart.resize(); // fuerza a Chart.js a redibujar el canvas
+  });
+});
 // =============================
 // 🎙️ Control de Micrófono Manual
 // =============================
@@ -718,7 +724,6 @@ micBtn.addEventListener("click", () => {
     alert("No se pudo iniciar el micrófono, verifica los permisos.");
   }
 });
-
 
 </script>
 </body>

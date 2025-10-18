@@ -6,6 +6,31 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
+#toggleMicBtn {
+  position: fixed;
+  bottom: 15px;
+  right: 70px; /* un poco a la izquierda del fullscreen */
+  background: rgba(255, 255, 255, 0.1);
+  color: #0ff;
+  border: 2px solid #0ff;
+  border-radius: 50%;
+  font-size: 24px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 9999;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+#toggleMicBtn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+#toggleMicBtn.off {
+  color: #f33;
+  border-color: #f33;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+}
+
 #graficas {
   background: #111827;
   color: #e5e7eb;
@@ -158,6 +183,7 @@ button:hover { background: #5f5; }
 <body>
 <!-- 🖥️ Botón para modo pantalla completa -->
 <button id="fullscreenBtn" title="Pantalla completa">🖥️</button>
+<button id="toggleMicBtn" title="Activar/Desactivar micrófono">🎙️</button>
 <h1>🎙️ Jarvis Asistente</h1>
 <p id="texto">🕐 Esperando “hola jarvich”...</p>
 <p class="status" id="estado">Micrófono activo 🎧</p>
@@ -544,10 +570,13 @@ if (comandoLimpio) {
 // --- Reinicio si se corta ---
 recog.onend = () => {
   if (!modoComando) {
-    try { recog.start(); } catch(e) {}
-    estado.innerText = '🎧 Escuchando nuevamente...';
+    setTimeout(() => {
+      try { recog.start(); } catch(e) {}
+      estado.innerText = '🎧 Escuchando nuevamente...';
+    }, 1000); // 🔧 1 segundo de espera evita bloqueo en móviles
   }
 };
+
 
 recog.onerror = (e) => {
   console.error('🎙️ Error en reconocimiento:', e);
@@ -667,7 +696,7 @@ fullscreenBtn.addEventListener("click", async () => {
   if (!document.fullscreenElement) {
     try {
       await document.documentElement.requestFullscreen();
-      fullscreenBtn.textContent = "❌";
+      fullscreenBtn.textContent = "🖥️";
       fullscreenBtn.title = "Salir de pantalla completa";
     } catch (err) {
       console.warn("No se pudo activar pantalla completa:", err);
@@ -678,6 +707,37 @@ fullscreenBtn.addEventListener("click", async () => {
     fullscreenBtn.title = "Pantalla completa";
   }
 });
+// =============================
+// 🎙️ Botón Activar/Desactivar Micrófono
+// =============================
+let micActivo = true;
+
+const toggleMicBtn = document.getElementById("toggleMicBtn");
+
+toggleMicBtn.addEventListener("click", () => {
+  micActivo = !micActivo;
+
+  if (micActivo) {
+    toggleMicBtn.textContent = "🎙️";
+    toggleMicBtn.classList.remove("off");
+    texto.innerText = "🎧 Micrófono activado";
+    try {
+      recog.start();
+    } catch (e) {
+      console.warn("⚠️ No se pudo iniciar reconocimiento:", e);
+    }
+  } else {
+    toggleMicBtn.textContent = "🔇";
+    toggleMicBtn.classList.add("off");
+    texto.innerText = "🔕 Micrófono desactivado";
+    try {
+      recog.stop();
+    } catch (e) {
+      console.warn("⚠️ No se pudo detener reconocimiento:", e);
+    }
+  }
+});
+
 </script>
 </body>
 </html>

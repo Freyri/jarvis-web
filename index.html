@@ -405,7 +405,7 @@ if (!SpeechRecognition) {
 const recog = new SpeechRecognition();
 recog.lang = 'es-ES';
 recog.continuous = true;
-recog.interimResults = false;
+recog.interimResults = true;
 
 // --- Normaliza y chequea si una frase contiene alguna variante ---
 function containsAnyVariant(frase, variants) {

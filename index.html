@@ -53,12 +53,13 @@ canvas {
   background: #1f2937;
   border-radius: 14px;
   padding: 10px;
-  width: 100%;
-  max-width: 800px;
-  height: 320px !important; /* 💪 más alto y visual */
+  width: 95vw;         /* usa ancho relativo a la pantalla */
+  max-width: 900px;    /* límite superior en PC */
+  height: 40vh !important; /* altura proporcional a la pantalla */
   box-sizing: border-box;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 
 /* efecto hover opcional, sutil */
 canvas:hover {

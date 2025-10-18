@@ -133,9 +133,31 @@ button {
 }
 button:hover { background: #5f5; }
 #nota { font-size: 0.9em; color: #9f9; margin-top: 6px; }
+/* ====== BOTÓN PANTALLA COMPLETA ====== */
+#fullscreenBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #e5e7eb;
+  border: none;
+  border-radius: 10px;
+  font-size: 22px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+#fullscreenBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
 </style>
 </head>
 <body>
+<!-- 🖥️ Botón para modo pantalla completa -->
+<button id="fullscreenBtn" title="Pantalla completa">🖥️</button>
 <h1>🎙️ Jarvis Asistente</h1>
 <p id="texto">🕐 Esperando “hola jarvich”...</p>
 <p class="status" id="estado">Micrófono activo 🎧</p>
@@ -305,8 +327,17 @@ const wakeWords = [
   'jarvis','yarvis','jervis','yervis','jarvich','yarvich',
   'llavich','llarvich','jharvis','jharvich','yharvis','yharvich',
   'holarvich','holarvis','yarbis','yaris','yarbit','yarbis',
+  'hola llaves','ola llaves','hola yaves','ola yaves',
+  'hola llaes','ola llaes','hola llave','ola llave',
+  'hola llarbes','ola llarbes','hola llarvis','ola llarvis',
+  'hola llabers','ola llabers','hola ylabes','ola ylabes',
+  'holallaves','holayaves','ola llabers','ola llabes',
+  'llaves','yaves','llaes','llabe','llabes','ylabes',
+  'llabers','llabes','llabiz','llabis','llabers','yabis',
+  'o la llaves','o la yaves','ol allaves','olayaves','llarvys'
+  'holallabes','holayabes','llavish','yavish','llabesito',
   'yarlis','yarmis','jerry','yerlich','yarbich','llarbich','yarbeach','yarvich',
-  'o la jarvich','o la yarvich','ol ayarvich','olayarvich'
+  'o la jarvich','llarvis','o la yarvich','ol ayarvich','olayarvich'
 ];
 
 // --- Variantes completas de ENCENDIDO/APAGADO (para mayor robustez en HTML) ---
@@ -530,15 +561,6 @@ try {
 }
 </script>
 <script>
-document.addEventListener("click", async () => {
-  try {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-    }
-  } catch (e) {
-    console.warn("No se pudo activar pantalla completa:", e);
-  }
-});
 // =============================
 // 🔘 Botones manuales START / STOP
 // =============================
@@ -631,6 +653,28 @@ client.on("message", (topic, message) => {
     } catch (e) {
       console.error("⚠️ Error leyendo datos MQTT:", e.message);
     }
+  }
+});
+</script>
+<script>
+// =============================
+// 🖥️ Control de Pantalla Completa
+// =============================
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+fullscreenBtn.addEventListener("click", async () => {
+  if (!document.fullscreenElement) {
+    try {
+      await document.documentElement.requestFullscreen();
+      fullscreenBtn.textContent = "❌";
+      fullscreenBtn.title = "Salir de pantalla completa";
+    } catch (err) {
+      console.warn("No se pudo activar pantalla completa:", err);
+    }
+  } else {
+    await document.exitFullscreen();
+    fullscreenBtn.textContent = "🖥️";
+    fullscreenBtn.title = "Pantalla completa";
   }
 });
 </script>

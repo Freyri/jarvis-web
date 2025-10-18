@@ -527,8 +527,7 @@ if (comandoLimpio) {
     console.warn("⚠️ Cliente MQTT no conectado.");
   }
 } else {
-   texto.innerText = `❓ No se reconoció un comando válido.\n(📢 Reconocido: "${frase}")`;
-   console.warn("🗣️ Dijo pero no coincidió con ningún comando:", frase);
+  texto.innerText = `❓ No se reconoció un comando válido.\n(📢 Reconocido: "${frase}")`;
 }
 
 
@@ -681,5 +680,6 @@ fullscreenBtn.addEventListener("click", async () => {
 </script>
 </body>
 </html>
+
 
 

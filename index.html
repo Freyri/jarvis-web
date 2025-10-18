@@ -404,7 +404,7 @@ if (!SpeechRecognition) {
 }
 const recog = new SpeechRecognition();
 recog.lang = 'es-ES';
-recog.continuous = true;
+recog.continuous = false;
 recog.interimResults = true;
 
 // --- Normaliza y chequea si una frase contiene alguna variante ---

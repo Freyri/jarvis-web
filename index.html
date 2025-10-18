@@ -3,8 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <title>🎙️ Jarvis Asistente de Voz</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
+#graficas {
+  background: #111827;
+  color: #e5e7eb;
+  padding: 40px 40px;
+  border-radius: 16px;
+  max-width: 900px;
+  margin: 60px auto;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#graficas h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #60a5fa;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 1.6em;
+  letter-spacing: 0.5px;
+}
+
+canvas {
+  margin: 25px 0;
+  background: #1f2937;
+  border-radius: 14px;
+  padding: 10px;
+  width: 100%;
+  max-width: 800px;
+  height: 320px !important; /* 💪 más alto y visual */
+  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* efecto hover opcional, sutil */
+canvas:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 25px rgba(96, 165, 250, 0.3);
+}
+
+
 #panelManual {
   margin-top: 40px;
 }
@@ -91,9 +133,31 @@ button {
 }
 button:hover { background: #5f5; }
 #nota { font-size: 0.9em; color: #9f9; margin-top: 6px; }
+/* ====== BOTÓN PANTALLA COMPLETA ====== */
+#fullscreenBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #e5e7eb;
+  border: none;
+  border-radius: 10px;
+  font-size: 22px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+#fullscreenBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
 </style>
 </head>
 <body>
+<!-- 🖥️ Botón para modo pantalla completa -->
+<button id="fullscreenBtn" title="Pantalla completa">🖥️</button>
 <h1>🎙️ Jarvis Asistente</h1>
 <p id="texto">🕐 Esperando “hola jarvich”...</p>
 <p class="status" id="estado">Micrófono activo 🎧</p>
@@ -120,6 +184,18 @@ button:hover { background: #5f5; }
     <button id="btnSetFreq">⚡ SET</button>
   </div>
 </div>
+<div id="panelLecturas" style="margin-top:40px;">
+  <h2>📈 Lecturas del Variador</h2>
+  <pre id="lecturas">Esperando datos...</pre>
+</div>
+<div id="graficas" style="margin-top: 40px;">
+  <h2>📊 Monitoreo en Tiempo Real</h2>
+  <canvas id="graf_f" height="150"></canvas>
+  <canvas id="graf_vout" height="150"></canvas>
+  <canvas id="graf_vin" height="150"></canvas>
+  <canvas id="graf_rpm" height="150"></canvas>
+</div>
+
 <script>
 /* ===========================
    Jarvis voz → limpia comando
@@ -140,12 +216,99 @@ client.on("connect", () => {
   console.log("✅ Conectado a broker MQTT HiveMQ");
   estado.innerText = "🌐 Conectado a MQTT (HiveMQ)";
 });
+client.on("reconnect", () => {
+  console.log("♻️ Reconectando a MQTT...");
+  estado.innerText = "♻️ Reconectando a MQTT...";
+});
+client.on("close", () => {
+  console.log("🔌 Conexión MQTT cerrada");
+  estado.innerText = "🔌 Desconectado de MQTT";
+});
+client.subscribe("test/matlab/demoYefri/data");
+
+client.on("message", (topic, message) => {
+  if (topic === "test/matlab/demoYefri/data") {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log("📊 Datos recibidos:", data);
+      actualizarGraficas(data);
+    } catch (err) {
+      console.warn("⚠️ Error parseando JSON:", err.message);
+    }
+  }
+});
 
 client.on("error", (err) => {
   console.error("⚠️ Error MQTT:", err);
   estado.innerText = "❌ Error al conectar MQTT";
 });
+// === CONFIGURACIÓN DE GRÁFICAS ===
+const tiempoMax = 20; // segundos de historial visible
+const charts = {};
 
+function crearGrafica(id, label, color) {
+  const ctx = document.getElementById(id).getContext("2d");
+  return new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [{
+        label: label,
+        borderColor: color,
+        backgroundColor: color + "33",
+        data: [],
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: {
+          title: { display: true, text: "Tiempo" }
+        },
+        y: {
+          title: { display: true, text: label },
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } }
+      }
+    }
+  });
+}
+
+// Crear las gráficas
+charts.f = crearGrafica("graf_f", "Frecuencia (Hz)", "#34d399");
+charts.vout = crearGrafica("graf_vout", "Voltaje Salida (V)", "#60a5fa");
+charts.vin = crearGrafica("graf_vin", "Voltaje Entrada (V)", "#fbbf24");
+charts.rpm = crearGrafica("graf_rpm", "RPM", "#f87171");
+
+// === FUNCIÓN PARA ACTUALIZAR DATOS ===
+function actualizarGraficas(data) {
+  const tiempo = data.timestamp || new Date().toLocaleTimeString();
+
+  Object.entries({
+    f: data.f,
+    vout: data.v_out,
+    vin: data.v_in,
+    rpm: data.rpm
+  }).forEach(([key, val]) => {
+    const chart = charts[key];
+    if (!chart) return;
+
+    chart.data.labels.push(tiempo);
+    chart.data.datasets[0].data.push(val);
+
+    if (chart.data.labels.length > tiempoMax) {
+      chart.data.labels.shift();
+      chart.data.datasets[0].data.shift();
+    }
+
+    chart.update();
+  });
+}
 
 // --- Wake words (variantes completas) ---
 const wakeWords = [
@@ -161,7 +324,20 @@ const wakeWords = [
   'hola jerry','ola jerry','hola jerry','ola jerry',
   'hola yerlich','ola yerlich','hola yerlich','ola yerlich',
   'hola yarbich','ola yarbich','hola llarbich','ola yarbeach',
-  'o la jarvich','o la yarvich','ol ayarvich','olayarvich'
+  'jarvis','yarvis','jervis','yervis','jarvich','yarvich',
+  'llavich','llarvich','jharvis','jharvich','yharvis','yharvich',
+  'holarvich','holarvis','yarbis','yaris','yarbit','yarbis',
+  'hola llaves','ola llaves','hola yaves','ola yaves',
+  'hola llaes','ola llaes','hola llave','ola llave',
+  'hola llarbes','ola llarbes','hola llarvis','ola llarvis',
+  'hola llabers','ola llabers','hola ylabes','ola ylabes',
+  'holallaves','holayaves','ola llabers','ola llabes',
+  'llaves','yaves','llaes','llabe','llabes','ylabes',
+  'llabers','llabes','llabiz','llabis','llabers','yabis',
+  'o la llaves','o la yaves','ol allaves','olayaves','llarvys',
+  'holallabes','holayabes','llavish','yavish','llabesito',
+  'yarlis','yarmis','jerry','yerlich','yarbich','llarbich','yarbeach','yarvich',
+  'o la jarvich','llarvis','o la yarvich','ol ayarvich','olayarvich'
 ];
 
 // --- Variantes completas de ENCENDIDO/APAGADO (para mayor robustez en HTML) ---
@@ -171,6 +347,13 @@ const cmdOnList = [
   "prende el motor","prender el motor","activa el motor","activar el motor",
   "arranca motor","arrancar motor","arranca el motor","arrancar el motor",
   "enciendelo","enciéndelo","prendelo","préndelo",
+  "prende variador","prender variador","enciende variador","encender variador",
+  "activa variador","activar variador","variador on","enciende el variador",
+  "prende el variador","prender el variador","activa el variador","activar el variador",
+  "arranca variador","arrancar variador","arranca el variador","arrancar el variador",
+  "enciendelo","enciéndelo","prendelo","préndelo",
+  "enciende máquina","prende máquina","arranca máquina",
+  "variador adelante","inicia variador","iniciar variador","inicia el variador",
   "enciende máquina","prende máquina","arranca máquina",
   "motor adelante","inicia motor","iniciar motor","inicia el motor"
 ];
@@ -183,6 +366,11 @@ const cmdOffList = [
   "detén motor","detén el motor","deten el motor",
   "apagalo","apágalo","desactivalo","desactívalo",
   "para máquina","detiene máquina","apaga máquina","stop motor",
+  "apaga variador","apagar variador","desactiva variador","desactivar variador",
+  "detiene variador","detener variador","para variador","variador off",
+  "apaga el variador","apagar el variador","desactiva el variador","desactivar el variador",
+  "detiene el variador","detener el variador","para el variador",
+  "detén variador","detén el variador","deten el variador",
   "frena motor","frenar motor","frena la máquina","detén la máquina"
 ];
 
@@ -242,9 +430,16 @@ function limpiarComando(fraseOriginal) {
     if (s.includes(v)) return "apaga motor";
   }
 
-  // 3) FRECUENCIA: detecta número (ej: "frecuencia 45.5", "poner frecuencia 22,45", "45.5 hz")
-  // buscamos la palabra "frecuencia" o "hz"/"hertz" para confirmar intención
-  if (s.includes("frecuencia") || s.includes("hz") || s.includes("hertz") || s.includes("herz") || s.includes("frecuncia") || s.includes("frecuensia") || s.includes("frecuecia") ||  s.includes("frecuancia") || s.includes("setear") || s.includes("setea") ||  s.includes("establecer") || s.includes("establece")) {
+// 3) FRECUENCIA: detecta número (ej: "frecuencia 45.5", "poner frecuencia 22,45", "45.5 hz")
+  const tieneNumero = /\d+([.,]\d+)?/.test(s); // detecta si hay un número en la frase
+  if (
+    s.includes("frecuencia") || s.includes("hz") || s.includes("hertz") ||
+    s.includes("herz") || s.includes("frecuncia") || s.includes("frecuensia") ||
+    s.includes("frecuecia") || s.includes("frecuancia") ||
+    s.includes("setear") || s.includes("setea") ||
+    s.includes("establecer") || s.includes("establece") ||
+    tieneNumero // 👈 ahora basta con que haya número para que entre
+  ) {
     // extraer primer número decimal que encuentre
     const m = s.match(/(\d+([.,]\d+)?)/);
     if (m) {
@@ -253,7 +448,11 @@ function limpiarComando(fraseOriginal) {
       const val = parseFloat(num);
       if (!isNaN(val)) {
         const valClamped = Math.max(0, Math.min(60, val));
-        return valClamped.toFixed((num.indexOf('.')>-1||num.indexOf(',')>-1)?(num.split(/[.,]/)[1].length):0);
+        return valClamped.toFixed(
+          (num.indexOf('.') > -1 || num.indexOf(',') > -1)
+            ? num.split(/[.,]/)[1].length
+            : 0
+        );
       }
     }
   }
@@ -261,7 +460,6 @@ function limpiarComando(fraseOriginal) {
   // no reconocido
   return null;
 }
-
 // --- Manejo de resultados de reconocimiento ---
 recog.onresult = (event) => {
   const frase = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
@@ -329,8 +527,8 @@ if (comandoLimpio) {
     console.warn("⚠️ Cliente MQTT no conectado.");
   }
 } else {
-  texto.innerText = `❓ No se reconoció un comando válido.\n(📢 Reconocido: "${frase}")`;
-  console.warn("🗣️ Dijo pero no coincidió con ningún comando:", frase);
+    texto.innerText = `❓ No se reconoció un comando válido.\n(📢 Reconocido: "${frase}")`;
+    console.warn("🗣️ Dijo pero no coincidió con ningún comando:", frase);
 }
 
 
@@ -364,15 +562,6 @@ try {
 }
 </script>
 <script>
-document.addEventListener("click", async () => {
-  try {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-    }
-  } catch (e) {
-    console.warn("No se pudo activar pantalla completa:", e);
-  }
-});
 // =============================
 // 🔘 Botones manuales START / STOP
 // =============================
@@ -447,6 +636,48 @@ btnSetFreq.onclick = () => {
     console.warn("⚠️ Cliente MQTT no conectado.");
   }
 };
+// === Suscripción para recibir datos del variador (desde MATLAB) ===
+client.subscribe("test/matlab/demoYefri/data");
+
+client.on("message", (topic, message) => {
+  if (topic === "test/matlab/demoYefri/data") {
+    try {
+      const data = JSON.parse(message.toString());
+      console.log("📊 Datos desde MATLAB:", data);
+      // Muestra en el HTML
+      document.getElementById("lecturas").innerText =
+        `Frecuencia: ${data.f} Hz\n` +
+        `V_OUT: ${data.v_out} V\n` +
+        `V_IN: ${data.v_in} V\n` +
+        `RPM: ${data.rpm}\n` +
+        `⏱️ ${data.timestamp}`;
+    } catch (e) {
+      console.error("⚠️ Error leyendo datos MQTT:", e.message);
+    }
+  }
+});
+</script>
+<script>
+// =============================
+// 🖥️ Control de Pantalla Completa
+// =============================
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+fullscreenBtn.addEventListener("click", async () => {
+  if (!document.fullscreenElement) {
+    try {
+      await document.documentElement.requestFullscreen();
+      fullscreenBtn.textContent = "❌";
+      fullscreenBtn.title = "Salir de pantalla completa";
+    } catch (err) {
+      console.warn("No se pudo activar pantalla completa:", err);
+    }
+  } else {
+    await document.exitFullscreen();
+    fullscreenBtn.textContent = "🖥️";
+    fullscreenBtn.title = "Pantalla completa";
+  }
+});
 </script>
 </body>
 </html>

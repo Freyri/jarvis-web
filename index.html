@@ -6,6 +6,24 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
+#micBtn {
+  position: fixed;
+  top: 10px;
+  right: 60px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #e5e7eb;
+  border: none;
+  border-radius: 10px;
+  font-size: 22px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+#micBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
 
 #graficas {
   background: #111827;
@@ -159,6 +177,8 @@ button:hover { background: #5f5; }
 <body>
 <!-- 🖥️ Botón para modo pantalla completa -->
 <button id="fullscreenBtn" title="Pantalla completa">🖥️</button>
+<!-- 🎙️ Botón activar/desactivar micrófono -->
+<button id="micBtn" title="Activar micrófono">🎙️</button>
 <h1>🎙️ Jarvis Asistente</h1>
 <p id="texto">🕐 Esperando “hola jarvich”...</p>
 <p class="status" id="estado">Micrófono activo 🎧</p>
@@ -485,7 +505,7 @@ recog.onresult = (event) => {
           temporizador = setTimeout(() => {
             modoComando = false;
             try { recog.stop(); } catch(e) {}
-            texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvich”…';
+            texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvis”…';
           }, 6000);
         };
       } else {
@@ -495,7 +515,7 @@ recog.onresult = (event) => {
         temporizador = setTimeout(() => {
           modoComando = false;
           try { recog.stop(); } catch(e) {}
-          texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvich”…';
+          texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvis”…';
         }, 5000);
       }
     }
@@ -545,10 +565,16 @@ if (comandoLimpio) {
 // --- Reinicio si se corta ---
 recog.onend = () => {
   if (!modoComando) {
+    console.log("🎤 Reconocimiento terminado, reintentando iniciar...");
     setTimeout(() => {
-      try { recog.start(); } catch(e) {}
-      estado.innerText = '🎧 Escuchando nuevamente...';
-    }, 1000); // 🔧 1 segundo de espera evita bloqueo en móviles
+      try {
+        recog.start();
+        estado.innerText = "🎧 Escuchando nuevamente...";
+      } catch (e) {
+        console.warn("⚠️ No se pudo reiniciar el micrófono automáticamente:", e);
+        estado.innerText = "📴 Micrófono pausado. Pulsa 🎙️ para reactivar.";
+      }
+    }, 500); // 🔧 0.5 segundos: en móviles reduce bloqueos
   }
 };
 
@@ -682,6 +708,37 @@ fullscreenBtn.addEventListener("click", async () => {
     fullscreenBtn.title = "Pantalla completa";
   }
 });
+// =============================
+// 🎙️ Control de Micrófono Manual
+// =============================
+const micBtn = document.getElementById("micBtn");
+let microfonoActivo = true;
+
+micBtn.addEventListener("click", async () => {
+  if (microfonoActivo) {
+    try {
+      recog.stop();
+      microfonoActivo = false;
+      micBtn.textContent = "🚫";
+      micBtn.title = "Micrófono desactivado";
+      estado.innerText = "📴 Micrófono desactivado manualmente.";
+    } catch (e) {
+      console.warn("Error al detener micrófono:", e);
+    }
+  } else {
+    try {
+      recog.start();
+      microfonoActivo = true;
+      micBtn.textContent = "🎙️";
+      micBtn.title = "Micrófono activo";
+      estado.innerText = "🎧 Micrófono activado nuevamente.";
+    } catch (e) {
+      console.warn("Error al iniciar micrófono:", e);
+      alert("No se pudo iniciar el micrófono, verifica los permisos.");
+    }
+  }
+});
+
 
 </script>
 </body>

@@ -53,13 +53,12 @@ canvas {
   background: #1f2937;
   border-radius: 14px;
   padding: 10px;
-  width: 95vw;         /* usa ancho relativo a la pantalla */
-  max-width: 900px;    /* límite superior en PC */
-  height: 40vh !important; /* altura proporcional a la pantalla */
+  width: 100%;
+  max-width: 800px;
+  height: 320px !important;
   box-sizing: border-box;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 
 /* efecto hover opcional, sutil */
 canvas:hover {
@@ -703,13 +702,7 @@ fullscreenBtn.addEventListener("click", async () => {
     fullscreenBtn.title = "Pantalla completa";
   }
 });
-// 🔄 Ajustar automáticamente las gráficas al cambiar el tamaño o pantalla completa
-window.addEventListener("resize", () => {
-  Object.values(charts).forEach(chart => {
-    chart.resize(); // fuerza a Chart.js a redibujar el canvas
-  });
-});
-// =============================
+
 // 🎙️ Control de Micrófono Manual
 // =============================
 const micBtn = document.getElementById("micBtn");
@@ -729,4 +722,5 @@ micBtn.addEventListener("click", () => {
 </script>
 </body>
 </html>
+
 

@@ -9,7 +9,7 @@
 #micBtn {
   position: fixed;
   top: 10px;
-  right: 60px;
+  right: 100px; /* antes estaba en 60px → ahora queda más separado del 🖥️ */
   background: rgba(255, 255, 255, 0.15);
   color: #e5e7eb;
   border: none;
@@ -20,6 +20,7 @@
   transition: all 0.3s ease;
   z-index: 9999;
 }
+
 #micBtn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.1);
@@ -563,18 +564,11 @@ if (comandoLimpio) {
 };
 
 // --- Reinicio si se corta ---
+// --- Reinicio si se corta ---
 recog.onend = () => {
   if (!modoComando) {
-    console.log("🎤 Reconocimiento terminado, reintentando iniciar...");
-    setTimeout(() => {
-      try {
-        recog.start();
-        estado.innerText = "🎧 Escuchando nuevamente...";
-      } catch (e) {
-        console.warn("⚠️ No se pudo reiniciar el micrófono automáticamente:", e);
-        estado.innerText = "📴 Micrófono pausado. Pulsa 🎙️ para reactivar.";
-      }
-    }, 500); // 🔧 0.5 segundos: en móviles reduce bloqueos
+    try { recog.start(); } catch(e) {}
+    estado.innerText = '🎧 Escuchando nuevamente...';
   }
 };
 
@@ -712,30 +706,16 @@ fullscreenBtn.addEventListener("click", async () => {
 // 🎙️ Control de Micrófono Manual
 // =============================
 const micBtn = document.getElementById("micBtn");
-let microfonoActivo = true;
 
-micBtn.addEventListener("click", async () => {
-  if (microfonoActivo) {
-    try {
-      recog.stop();
-      microfonoActivo = false;
-      micBtn.textContent = "🚫";
-      micBtn.title = "Micrófono desactivado";
-      estado.innerText = "📴 Micrófono desactivado manualmente.";
-    } catch (e) {
-      console.warn("Error al detener micrófono:", e);
-    }
-  } else {
-    try {
-      recog.start();
-      microfonoActivo = true;
-      micBtn.textContent = "🎙️";
-      micBtn.title = "Micrófono activo";
-      estado.innerText = "🎧 Micrófono activado nuevamente.";
-    } catch (e) {
-      console.warn("Error al iniciar micrófono:", e);
-      alert("No se pudo iniciar el micrófono, verifica los permisos.");
-    }
+micBtn.addEventListener("click", () => {
+  try {
+    recog.start();
+    micBtn.textContent = "🎙️";
+    micBtn.title = "Micrófono activado";
+    estado.innerText = "🎧 Micrófono activado nuevamente.";
+  } catch (e) {
+    console.warn("Error al iniciar micrófono:", e);
+    alert("No se pudo iniciar el micrófono, verifica los permisos.");
   }
 });
 

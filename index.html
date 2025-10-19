@@ -25,23 +25,26 @@
 
 #micBtn {
   position: fixed;
-  top: 10px;
-  right: 100px; /* antes estaba en 60px → ahora queda más separado del 🖥️ */
+  bottom: 25px;         /* 📍 lo baja */
+  right: 25px;          /* 📍 lo pega al borde derecho */
+  width: 65px;
+  height: 65px;
   background: rgba(255, 255, 255, 0.15);
   color: #e5e7eb;
   border: none;
-  border-radius: 10px;
-  font-size: 22px;
-  padding: 8px 10px;
+  border-radius: 50%;   /* 🔵 redondeado tipo "botón flotante" */
+  font-size: 28px;
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35); /* 🌑 flotante sutil */
 }
 
 #micBtn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.12);
 }
+
 
 #graficas {
   background: #111827;

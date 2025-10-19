@@ -6,6 +6,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
+/* 🔴 Efecto de parpadeo del micrófono cuando no está escuchando */
+@keyframes parpadeoMic {
+  0%, 100% {
+    box-shadow: 0 0 8px 2px rgba(255, 60, 60, 0.8);
+    background: rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 18px 6px rgba(255, 60, 60, 0.2);
+    background: rgba(255, 0, 0, 0.15);
+  }
+}
+
+#micBtn.parpadeando {
+  animation: parpadeoMic 1.3s infinite ease-in-out;
+  border: 2px solid rgba(255, 60, 60, 0.7);
+}
+
 #micBtn {
   position: fixed;
   top: 10px;
@@ -493,6 +510,7 @@ recog.onresult = (event) => {
     if (containsAnyVariant(frase, wakeWords)) {
       modoComando = true;
       texto.innerText = '🤖 Sí, mi señor... preparando escucha.';
+      micBtn.classList.remove('parpadeando');
       recog.stop();
       if (audioDesbloqueado) {
         reproducirBip(500, 0.25);
@@ -507,6 +525,7 @@ recog.onresult = (event) => {
             modoComando = false;
             try { recog.stop(); } catch(e) {}
             texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvis”…';
+            micBtn.classList.add('parpadeando');
           }, 6000);
         };
       } else {
@@ -552,12 +571,15 @@ if (comandoLimpio) {
   try { recog.stop(); } catch(e) {}
   clearTimeout(temporizador);   // Cancelar cualquier temporizador pendiente
   texto.innerText += '\n🎤 Reconocimiento finalizado. Esperando “hola jarvis”…';
+  micBtn.classList.add('parpadeando'); // 🔴 Volver a parpadear después del comando
 } else {
     texto.innerText = `❓ No se reconoció un comando válido.\n(📢 Reconocido: "${frase}")`;
     console.warn("🗣️ Dijo pero no coincidió con ningún comando:", frase);
+    micBtn.classList.add('parpadeando'); // 🔴 Jarvis vuelve a inactivo
 }
   }
 };
+micBtn.classList.add('parpadeando'); // 🔴 comienza parpadeando al iniciar
 </script>
 <script>
 // =============================

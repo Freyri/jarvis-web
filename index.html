@@ -548,16 +548,14 @@ if (comandoLimpio) {
   } else {
     console.warn("⚠️ Cliente MQTT no conectado.");
   }
+  modoComando = false;          // Salimos del modo comando inmediatamente
+  try { recog.stop(); } catch(e) {}
+  clearTimeout(temporizador);   // Cancelar cualquier temporizador pendiente
+  texto.innerText += '\n🎤 Reconocimiento finalizado. Esperando “hola jarvis”…';
 } else {
     texto.innerText = `❓ No se reconoció un comando válido.\n(📢 Reconocido: "${frase}")`;
     console.warn("🗣️ Dijo pero no coincidió con ningún comando:", frase);
 }
-    modoComando = false;
-    // esperar un segundo y reiniciar reconocimiento continuo
-    setTimeout(() => {
-      try { recog.start(); } catch(e) {}
-      texto.innerText = '🔇 Presiona 🎙️ para empezar a escuchar “hola jarvis”…';
-    }, 800);
   }
 };
 </script>

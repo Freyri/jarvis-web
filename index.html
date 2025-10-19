@@ -570,7 +570,7 @@ if (comandoLimpio) {
   modoComando = false;          // Salimos del modo comando inmediatamente
   try { recog.stop(); } catch(e) {}
   clearTimeout(temporizador);   // Cancelar cualquier temporizador pendiente
-  texto.innerText += '\n🎤 Reconocimiento finalizado. Esperando “hola jarvis”…';
+  texto.innerText += '\n🎤 Reconocimiento finalizado. Presiona 🎙️ ;
   micBtn.classList.add('parpadeando'); // 🔴 Volver a parpadear después del comando
 } else {
     texto.innerText = `❓ No se reconoció un comando válido.\n(📢 Reconocido: "${frase}")`;
@@ -706,6 +706,7 @@ const micBtn = document.getElementById("micBtn");
 micBtn.addEventListener("click", () => {
   try {
     recog.start();
+    micBtn.classList.remove('parpadeando'); // 👈 Detener parpadeo mientras escucha
     micBtn.textContent = "🎙️";
     micBtn.title = "Micrófono activado";
     estado.innerText = "🎧 Micrófono activado nuevamente.";
@@ -718,4 +719,6 @@ micBtn.addEventListener("click", () => {
 </script>
 </body>
 </html>
+
+
 

@@ -526,7 +526,7 @@ recog.onresult = (event) => {
             try { recog.stop(); } catch(e) {}
             texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvis”…';
             micBtn.classList.add('parpadeando');
-          }, 6000);
+          }, 10000);
         };
       } else {
         // sin audio desbloqueado: arrancar escucha de inmediato
@@ -536,7 +536,7 @@ recog.onresult = (event) => {
           modoComando = false;
           try { recog.stop(); } catch(e) {}
           texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvis”…';
-        }, 5000);
+        }, 8000);
       }
     }
   } else {

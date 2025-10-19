@@ -38,6 +38,10 @@
   transition: all 0.3s ease;
   z-index: 9999;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35); /* 🌑 flotante sutil */
+  /* 👇 Estas dos líneas centran el ícono perfectamente */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #micBtn:hover {
@@ -529,7 +533,7 @@ recog.onresult = (event) => {
             try { recog.stop(); } catch(e) {}
             texto.innerText = '🕐 Tiempo agotado. Esperando “hola jarvis”…';
             micBtn.classList.add('parpadeando');
-          }, 10000);
+          }, 12000);
         };
       } else {
         // sin audio desbloqueado: arrancar escucha de inmediato
